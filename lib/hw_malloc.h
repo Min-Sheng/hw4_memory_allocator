@@ -4,6 +4,11 @@
 #include <stddef.h>
 #include <inttypes.h>
 #include <unistd.h>
+#include <stdio.h>
+
+typedef void* chunk_ptr_t ;
+typedef unsigned long long chunk_size_t;
+typedef void* chunk_flag_t ;
 
 struct chunk_header {
 	chunk_ptr_t prev;
