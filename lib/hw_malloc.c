@@ -62,9 +62,7 @@ void *hw_malloc(size_t bytes)
 			bin_init(&bin[i]);
 		bin_add_chunk(&bin[6],new_chunk_ptr);
 		first_alloc = 0;
-	}
-	else
-	{
+	} else {
 		return NULL;
 	}
 	return alloc_start_addr;
@@ -78,8 +76,7 @@ int hw_free(void *mem)
 void *get_start_sbrk(void)
 {
 	int i = 0;
-	for (i = 0; i < 7; i++)
-	{
+	for (i = 0; i < 7; i++) {
 		printf("bin[%d]",i);
 		bin_show(&bin[i]);
 		printf("\n");
