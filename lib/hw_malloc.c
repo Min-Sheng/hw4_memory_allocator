@@ -1,5 +1,5 @@
 #include "hw_malloc.h"
-
+int first_alloc = 1;
 void bin_init(bin_t *bin_)
 {
 	bin_->next = (chunk_ptr_t)bin_;
@@ -38,7 +38,7 @@ void bin_show(bin_t *bin_)
 {
 	chunk_ptr_t current = bin_->next;
 	while (current != (chunk_ptr_t)bin_) {
-		printf("free chunk: %p\n", current);
+		printf("-> free chunk: %p", current);
 		current = current->next;
 	}
 }
@@ -47,7 +47,7 @@ void *hw_malloc(size_t bytes)
 
 	void* alloc_start_addr;
 	void* free_start_addr;
-	if (&bin[0]) {
+	if (first_alloc) {
 		heap_start_addr = sbrk(65536);
 		if(*(int*)heap_start_addr==-1)
 			return NULL;
@@ -61,8 +61,11 @@ void *hw_malloc(size_t bytes)
 		for (i = 0; i < 7; i++)
 			bin_init(&bin[i]);
 		bin_add_chunk(&bin[6],new_chunk_ptr);
-	} else {
-
+		first_alloc = 0;
+	}
+	else
+	{
+		return NULL;
 	}
 	return alloc_start_addr;
 }
@@ -74,7 +77,13 @@ int hw_free(void *mem)
 
 void *get_start_sbrk(void)
 {
-	bin_show(&bin[6]);
+	int i = 0;
+	for (i = 0; i < 7; i++)
+	{
+		printf("bin[%d]",i);
+		bin_show(&bin[i]);
+		printf("\n");
+	}
 	brk(heap_start_addr);
 	return heap_start_addr;
 }

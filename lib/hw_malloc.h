@@ -25,6 +25,7 @@ typedef struct {
 bin_t bin[7];
 
 void* heap_start_addr;
+extern int first_alloc;
 
 void bin_init(bin_t *bin_);
 int bin_is_empty(bin_t *bin_);
