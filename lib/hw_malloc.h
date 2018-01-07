@@ -20,7 +20,7 @@ struct chunk_header {
 typedef struct {
 	chunk_ptr_t prev;
 	chunk_ptr_t next;
-}bin_t;
+} bin_t;
 
 bin_t bin[7];
 

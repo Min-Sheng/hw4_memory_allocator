@@ -17,11 +17,10 @@ int bin_is_empty(bin_t *bin_)
 void bin_add_chunk(bin_t *bin_,chunk_ptr_t chunk_ptr)
 {
 	chunk_ptr_t last=bin_->prev;
-	if(bin_==&bin[6]){
+	if(bin_==&bin[6]) {
 		chunk_ptr_t tmp = bin_->next;
-		while (tmp != (chunk_ptr_t)&bin[6])
-		{
-			if(chunk_ptr->chunk_size > tmp->chunk_size){
+		while (tmp != (chunk_ptr_t)&bin[6]) {
+			if(chunk_ptr->chunk_size > tmp->chunk_size) {
 				last = tmp->prev;
 				bin_ =(bin_t*)tmp;
 				break;
@@ -35,10 +34,10 @@ void bin_add_chunk(bin_t *bin_,chunk_ptr_t chunk_ptr)
 	chunk_ptr->prev = last;
 }
 
-void bin_show(bin_t *bin_){
+void bin_show(bin_t *bin_)
+{
 	chunk_ptr_t current = bin_->next;
-	while (current != (chunk_ptr_t)bin_)
-	{
+	while (current != (chunk_ptr_t)bin_) {
 		printf("free chunk: %p\n", current);
 		current = current->next;
 	}
@@ -59,12 +58,10 @@ void *hw_malloc(size_t bytes)
 		new_chunk_ptr->pre_chunk_size = bytes;
 		new_chunk_ptr->prev_free_flag = 0;
 		int i = 0;
-		for (i = 0; i < 7;i++)
+		for (i = 0; i < 7; i++)
 			bin_init(&bin[i]);
 		bin_add_chunk(&bin[6],new_chunk_ptr);
-	}
-	else
-	{
+	} else {
 
 	}
 	return alloc_start_addr;
