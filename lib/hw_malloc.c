@@ -1,5 +1,7 @@
 #include "hw_malloc.h"
+
 int first_alloc = 1;
+
 void bin_init(bin_t *bin_)
 {
 	bin_->next = (chunk_ptr_t)bin_;
@@ -39,13 +41,89 @@ void bin_show(bin_t *bin_)
 	chunk_ptr_t current = bin_->next;
 	while (current != (chunk_ptr_t)bin_) {
 		printf("-> free chunk: %p", current);
+		printf("(chunk_size=%llu; prev_chunk_size=%llu; prev_free_flag=%llu)",(unsigned long long)current->chunk_size, (unsigned long long)current->pre_chunk_size, (unsigned long long)current->prev_free_flag);
 		current = current->next;
 	}
 }
-void *hw_malloc(size_t bytes)
+
+int bin_choose(size_t bytes)
+{
+	if(bytes<=48)
+		return 0;
+	else if(bytes>48&&bytes<=56)
+		return 1;
+	else if(bytes>56&&bytes<=64)
+		return 2;
+	else if(bytes>64&&bytes<=72)
+		return 3;
+	else if(bytes>72&&bytes<=80)
+		return 4;
+	else if(bytes>80&&bytes<=88)
+		return 5;
+	else
+		return 6;
+}
+
+void *chunk_split(size_t bytes)
 {
 
-	void* alloc_start_addr;
+	/*Split free chunk function for bin 6*/
+	chunk_ptr_t chunk_min_fit = bin[6].prev;
+	int found = 0, split = 0;
+	while (chunk_min_fit != (chunk_ptr_t)&bin[6])
+	{
+		if(bin_is_empty(&bin[6])){
+			break;
+		}else if(chunk_min_fit->chunk_size > bytes){
+			if(chunk_min_fit->chunk_size - bytes< 48){
+				bytes = chunk_min_fit->chunk_size;
+				found = 1;
+				break;
+			}else{
+				found = 1;
+				split = 1;
+				break;
+			}
+		}else if(chunk_min_fit->chunk_size < bytes){
+			chunk_min_fit = chunk_min_fit->prev;
+		}
+	}
+	if(!found)
+		return NULL;
+	if(split){
+		chunk_ptr_t chunk_rest;
+		int rest = bin_choose(chunk_min_fit->chunk_size - bytes);
+		chunk_rest=(void*)chunk_min_fit + 40 + bytes;
+		chunk_rest->chunk_size=chunk_min_fit->chunk_size - bytes;
+		chunk_rest->pre_chunk_size = bytes;
+		chunk_rest->prev_free_flag = 0;
+		bin_add_chunk(&bin[rest], chunk_rest);
+	}
+	return chunk_min_fit;
+}
+
+void *chunk_merge(chunk_ptr_t chunk_ptr)
+{
+	return NULL;
+}
+
+void *chunk_del(chunk_ptr_t chunk_ptr)
+{
+	/*Delete the split-out free chunk*/
+	chunk_ptr->prev->next=chunk_ptr->next;
+	chunk_ptr->next->prev=chunk_ptr->prev;
+	chunk_ptr->next=NULL;
+	chunk_ptr->prev=NULL;
+	return chunk_ptr;
+}
+
+void *hw_malloc(size_t bytes)
+{
+	if(bytes < 0)
+		return NULL;
+	else if(bytes % 8 != 0)
+		bytes = (bytes / 8 + 1) * 8;
+	void *alloc_start_addr;
 	void* free_start_addr;
 	if (first_alloc) {
 		heap_start_addr = sbrk(65536);
@@ -63,7 +141,23 @@ void *hw_malloc(size_t bytes)
 		bin_add_chunk(&bin[6],new_chunk_ptr);
 		first_alloc = 0;
 	} else {
-		return NULL;
+		int which_bin = bin_choose(bytes);
+		chunk_ptr_t new_alloc_ptr;
+		if(which_bin==6){
+			/*Allocate from bin 6*/
+			new_alloc_ptr=chunk_split(bytes);
+			chunk_del(new_alloc_ptr);
+		}
+		else if(bin_is_empty(&bin[which_bin])){
+			/*No free chunk in the choosed bin, so allocate from bin 6*/
+			new_alloc_ptr=chunk_split(bytes);
+			chunk_del(new_alloc_ptr);
+		}
+		else{
+			/*Allocate from the bin other than bin 6*/
+			new_alloc_ptr=chunk_del(bin[which_bin].prev);
+		}
+		alloc_start_addr = (void *)new_alloc_ptr + 40;
 	}
 	return alloc_start_addr;
 }

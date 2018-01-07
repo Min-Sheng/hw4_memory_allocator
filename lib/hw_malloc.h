@@ -31,6 +31,11 @@ void bin_init(bin_t *bin_);
 int bin_is_empty(bin_t *bin_);
 void bin_add_chunk(bin_t *bin_, chunk_ptr_t chunk_ptr);
 void bin_show(bin_t *bin_);
+int bin_choose(size_t bytes);
+
+void *chunk_split(size_t bytes);
+void *chunk_merge(chunk_ptr_t chunk_ptr);
+void *chunk_del(chunk_ptr_t chunk_ptr);
 
 extern void *hw_malloc(size_t bytes);
 extern int hw_free(void *mem);
