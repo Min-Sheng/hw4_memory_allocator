@@ -6,7 +6,7 @@
 #include <unistd.h>
 #include <stdio.h>
 
-typedef struct chunk_header* chunk_ptr_t ;
+typedef struct chunk_header *chunk_ptr_t ;
 typedef unsigned long long chunk_size_t, chunk_flag_t ;
 
 struct chunk_header {
@@ -22,9 +22,10 @@ typedef struct {
 	chunk_ptr_t next;
 } bin_t;
 
-bin_t bin[7];
+bin_t bin[8];
 
-void* heap_start_addr;
+void *heap_start_addr;
+int last_is_free;
 extern int first_alloc;
 
 void bin_init(bin_t *bin_);
@@ -40,5 +41,6 @@ void *chunk_del(chunk_ptr_t chunk_ptr);
 extern void *hw_malloc(size_t bytes);
 extern int hw_free(void *mem);
 extern void *get_start_sbrk(void);
+extern void hw_show_info(void);
 
 #endif
