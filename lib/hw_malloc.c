@@ -198,7 +198,7 @@ void *chunk_merge(chunk_ptr_t chunk_ptr)
 		}
 		*/
 		chunk_del(prev_chunk);
-		if((void *)chunk_ptr + chunk_ptr->chunk_size < heap_start_addr +65536){
+		if((void *)chunk_ptr + chunk_ptr->chunk_size < heap_start_addr +65536) {
 			next_chunk = (chunk_ptr_t)((void *)chunk_ptr + chunk_ptr->chunk_size);
 			next_chunk->pre_chunk_size = chunk_ptr->chunk_size;
 		}
@@ -273,11 +273,13 @@ void *hw_malloc(size_t bytes)
 			new_alloc_chunk_ptr->chunk_size = bytes;
 		}
 		if((void *)new_alloc_chunk_ptr + new_alloc_chunk_ptr->chunk_size <
-			   heap_start_addr +65536){
-				   	chunk_ptr_t next_chunk = (chunk_ptr_t)((void *)new_alloc_chunk_ptr + new_alloc_chunk_ptr->chunk_size);
-				next_chunk->prev_free_flag = 0;
-		} else if((void *)new_alloc_chunk_ptr + new_alloc_chunk_ptr->chunk_size == heap_start_addr + 65536){
-			   last_is_free = 0;
+		   heap_start_addr +65536) {
+			chunk_ptr_t next_chunk = (chunk_ptr_t)((void *)new_alloc_chunk_ptr +
+			                                       new_alloc_chunk_ptr->chunk_size);
+			next_chunk->prev_free_flag = 0;
+		} else if((void *)new_alloc_chunk_ptr + new_alloc_chunk_ptr->chunk_size ==
+		          heap_start_addr + 65536) {
+			last_is_free = 0;
 		}
 	}
 	bin_add_chunk(&bin[7], new_alloc_chunk_ptr);
@@ -303,14 +305,16 @@ int hw_free(void *mem)
 	about_to_free = chunk_merge(about_to_free);
 	//printf("about_to_free: %010p\n", about_to_free);
 	//printf("about_to_free_size: %llu\n", about_to_free->chunk_size);
-	if((void *)about_to_free + about_to_free->chunk_size < heap_start_addr + 65536) {
+	if((void *)about_to_free + about_to_free->chunk_size < heap_start_addr +
+	   65536) {
 		chunk_ptr_t next_chunk = (chunk_ptr_t)((void *)about_to_free +
 		                                       about_to_free->chunk_size);
 		//printf("next: %010p\n", next_chunk);
 		//printf("prev_free_flag: %llu\n", next_chunk->prev_free_flag);
 		next_chunk->prev_free_flag = 1;
 		//printf("prev_free_flag: %llu\n", next_chunk->prev_free_flag);
-	}else if((void *)about_to_free + about_to_free->chunk_size == heap_start_addr + 65536){
+	} else if((void *)about_to_free + about_to_free->chunk_size == heap_start_addr +
+	          65536) {
 		last_is_free = 1;
 	}
 	int which_bin = bin_choose(about_to_free->chunk_size);
