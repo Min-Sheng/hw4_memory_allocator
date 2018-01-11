@@ -5,12 +5,12 @@ int first_alloc = 1;
 void bin_init(bin_t *bin_)
 {
 	bin_->next = (chunk_ptr_t)bin_;
-	bin_->prev=(chunk_ptr_t)bin_;
+	bin_->prev = (chunk_ptr_t)bin_;
 }
 
 int bin_is_empty(bin_t *bin_)
 {
-	if(bin_->next==(chunk_ptr_t)bin)
+	if(bin_->next==(chunk_ptr_t)bin_)
 		return 1;
 	else
 		return 0;
@@ -19,17 +19,21 @@ int bin_is_empty(bin_t *bin_)
 void bin_add_chunk(bin_t *bin_,chunk_ptr_t chunk_ptr)
 {
 	chunk_ptr_t last=bin_->prev;
-	if(bin_==&bin[6]) {
+	//printf("d1\n");
+	if (bin_ == &bin[6])
+	{
 		chunk_ptr_t tmp = bin_->next;
 		while (tmp != (chunk_ptr_t)&bin[6]) {
 			if(chunk_ptr->chunk_size > tmp->chunk_size) {
 				last = tmp->prev;
 				bin_ =(bin_t*)tmp;
+				//printf("d2\n");
 				break;
 			}
 			tmp = tmp->next;
 		}
 	}
+	//printf("d3\n");
 	last->next = chunk_ptr;
 	bin_->prev = chunk_ptr;
 	chunk_ptr->next = (chunk_ptr_t)bin_;
@@ -40,12 +44,16 @@ void bin_show(bin_t *bin_)
 {
 	chunk_ptr_t current = bin_->next;
 	while (current != (chunk_ptr_t)bin_) {
-		printf("-> chunk: %p", (void *)current);
+		printf("-> chunk: %010p", (void *)current);
+		printf("(prev_free_flag=%llu)\n",
+		       (unsigned long long)current->prev_free_flag);
+		/*
 		printf("(next:%p; prev:%p; chunk_size=%llu; prev_chunk_size=%llu; prev_free_flag=%llu)",
 		       (void *)current->next, (void *)current->prev,
 		       (unsigned long long)current->chunk_size,
 		       (unsigned long long)current->pre_chunk_size,
 		       (unsigned long long)current->prev_free_flag);
+		*/
 		current = current->next;
 	}
 }
@@ -70,47 +78,66 @@ int bin_choose(size_t bytes)
 
 void *chunk_split(size_t bytes)
 {
-
 	/*Split free chunk function for bin 6*/
 	chunk_ptr_t chunk_min_fit = bin[6].prev;
-	int found = 0, split = 0;
+	//printf("c1\n");
+	int found = 0, split = 0, last = 0;
 	while (chunk_min_fit != (chunk_ptr_t)&bin[6]) {
 		if(bin_is_empty(&bin[6])) {
 			break;
-		} else if(chunk_min_fit->chunk_size > bytes) {
-			if(chunk_min_fit->chunk_size - bytes< 48) {
-				bytes = chunk_min_fit->chunk_size;
+		} else if(chunk_min_fit->chunk_size >= bytes) {
+			if((void *)chunk_min_fit + bytes < heap_start_addr + 65536 ){
+				if(chunk_min_fit->chunk_size - bytes< 48){
+					bytes = chunk_min_fit->chunk_size;
+					found = 1;
+					break;
+				}else{
+					found = 1;
+					split = 1;
+					break;
+				}
+			}else{
 				found = 1;
-				break;
-			} else {
-				found = 1;
-				split = 1;
 				break;
 			}
-		} else if(chunk_min_fit->chunk_size < bytes) {
+		} else {
 			chunk_min_fit = chunk_min_fit->prev;
 		}
 	}
+	//printf("c2\n");
 	if(!found)
 		return NULL;
 	if(split) {
+		//printf("s\n");
+		//printf("Chunk_min_fit: %p\n", (void *)chunk_min_fit);
 		chunk_ptr_t chunk_rest;
+		//printf("Rest Size: %llu\n", chunk_min_fit->chunk_size - bytes);
 		int rest = bin_choose(chunk_min_fit->chunk_size - bytes);
-		chunk_rest=(void*)chunk_min_fit + 40 + bytes;
-		chunk_rest->chunk_size=chunk_min_fit->chunk_size - bytes;
+		//printf("Rest: %d\n", rest);
+		chunk_rest = (void *)chunk_min_fit + bytes;
+		//printf("heap_end: %p\n", heap_start_addr + 65536);
+		//printf("Chunk_rest: %p\n", (void *)chunk_rest);
+		//printf("Chunk_min_fit_size: %llu\n", chunk_min_fit->chunk_size);
+		chunk_rest->chunk_size = chunk_min_fit->chunk_size - bytes;
+		//printf("Chunk_rest_size: %llu\n", chunk_rest->chunk_size);
 		chunk_rest->pre_chunk_size = bytes;
 		chunk_rest->prev_free_flag = 0;
+		chunk_min_fit->chunk_size = bytes;
+		//printf("c3\n");
 		bin_add_chunk(&bin[rest], chunk_rest);
+		//printf("c4\n");
+	}else{
+		chunk_min_fit->chunk_size = bytes;
 	}
 	return chunk_min_fit;
 }
 
 void *chunk_merge(chunk_ptr_t chunk_ptr)
 {
-	chunk_ptr_t prev_chunk = NULL, next_chunk=NULL, next_next_chunk=NULL;
+	chunk_ptr_t prev_chunk = NULL, next_chunk = NULL, next_next_chunk = NULL;
 	if ((void *)chunk_ptr < heap_start_addr + 65536) {
-		if((void *)chunk_ptr + chunk_ptr->chunk_size + 40 < heap_start_addr + 65536) {
-			next_chunk = (chunk_ptr_t)((void *)chunk_ptr + chunk_ptr->chunk_size + 40);
+		if((void *)chunk_ptr + chunk_ptr->chunk_size < heap_start_addr + 65536) {
+			next_chunk = (chunk_ptr_t)((void *)chunk_ptr + chunk_ptr->chunk_size);
 			/*
 			printf("next_chunk: %p(next:%p; prev:%p; chunk_size=%llu; prev_chunk_size=%llu; prev_free_flag=%llu)\n",
 				(void *)next_chunk,
@@ -120,9 +147,8 @@ void *chunk_merge(chunk_ptr_t chunk_ptr)
 				(unsigned long long)next_chunk->pre_chunk_size,
 				(unsigned long long)next_chunk->prev_free_flag);
 			*/
-			if((void *)next_chunk + next_chunk->chunk_size + 40 < heap_start_addr + 65536) {
-				next_next_chunk = (chunk_ptr_t)((void *)next_chunk + next_chunk->chunk_size +
-				                                40);
+			if((void *)next_chunk + next_chunk->chunk_size < heap_start_addr + 65536) {
+				next_next_chunk = (chunk_ptr_t)((void *)next_chunk + next_chunk->chunk_size);
 				/*
 				printf("next_next_chunk: %p(next:%p; prev:%p; chunk_size=%llu; prev_chunk_size=%llu; prev_free_flag=%llu)\n",
 					(void *)next_next_chunk,
@@ -133,19 +159,24 @@ void *chunk_merge(chunk_ptr_t chunk_ptr)
 					(unsigned long long)next_next_chunk->prev_free_flag);
 				*/
 				if(next_next_chunk->prev_free_flag == 1) {
-					chunk_ptr->chunk_size+=next_chunk->chunk_size;
+					chunk_ptr->chunk_size += next_chunk->chunk_size;
 					chunk_del(next_chunk);
+					next_next_chunk->pre_chunk_size = chunk_ptr->chunk_size;
+					//printf("merge next\n");
 				}
-			} else {
-				if(last_is_free) {
-					chunk_ptr->chunk_size+=next_chunk->chunk_size;
-					chunk_del(next_chunk);
-				}
+			}
+		}else if((void *)chunk_ptr + chunk_ptr->chunk_size == heap_start_addr + 65536){
+			next_chunk = (chunk_ptr_t)((void *)chunk_ptr + chunk_ptr->chunk_size);
+			if(last_is_free) {
+				chunk_ptr->chunk_size += next_chunk->chunk_size;
+				chunk_del(next_chunk);
+				//printf("merge last\n");
 			}
 		}
 	}
-	if (chunk_ptr->prev_free_flag == 1) {
-		prev_chunk = (chunk_ptr_t)((void *)chunk_ptr - chunk_ptr->pre_chunk_size - 40);
+	if (chunk_ptr->prev_free_flag == 1)
+	{
+		prev_chunk = (chunk_ptr_t)((void *)chunk_ptr - chunk_ptr->pre_chunk_size);
 		/*
 		printf("prev_chunk: %p(next:%p; prev:%p; chunk_size=%llu; prev_chunk_size=%llu; prev_free_flag=%llu)\n",
 			(void *)prev_chunk,
@@ -157,7 +188,20 @@ void *chunk_merge(chunk_ptr_t chunk_ptr)
 		*/
 		prev_chunk->chunk_size += chunk_ptr->chunk_size;
 		chunk_ptr = prev_chunk;
+		/*
+		if(prev_chunk->prev==NULL){
+			printf("prev: %010p", prev_chunk);
+			int i = 0;
+			for (i = 0; i < 8; i++) {
+				printf("bin[%d]",i);
+				bin_show(&bin[i]);
+				printf("\n");
+			}
+		}
+		*/
 		chunk_del(prev_chunk);
+		next_chunk->pre_chunk_size = chunk_ptr->chunk_size;
+		//printf("merge prev\n");
 	}
 	return chunk_ptr;
 }
@@ -174,10 +218,12 @@ void *chunk_del(chunk_ptr_t chunk_ptr)
 
 void *hw_malloc(size_t bytes)
 {
-	if(bytes < 0)
+	if (bytes < 0)
 		return NULL;
-	else if(bytes % 8 != 0)
+	bytes += 40;
+	if(bytes % 8 != 0)
 		bytes = (bytes / 8 + 1) * 8;
+	//printf("------\n");
 	chunk_ptr_t new_alloc_chunk_ptr;
 	if (first_alloc) {
 		heap_start_addr = sbrk(65536);
@@ -187,9 +233,8 @@ void *hw_malloc(size_t bytes)
 		new_alloc_chunk_ptr->chunk_size = bytes;
 		new_alloc_chunk_ptr->pre_chunk_size = 0;
 		new_alloc_chunk_ptr->prev_free_flag = 0;
-		chunk_ptr_t new_free_chunk_ptr = (chunk_ptr_t)((void *)new_alloc_chunk_ptr + 40
-		                                 + bytes);
-		new_free_chunk_ptr->chunk_size = 65536 - (40*2 + bytes);
+		chunk_ptr_t new_free_chunk_ptr = (chunk_ptr_t)((void *)new_alloc_chunk_ptr + bytes);
+		new_free_chunk_ptr->chunk_size = 65536 - bytes;
 		new_free_chunk_ptr->pre_chunk_size = bytes;
 		new_free_chunk_ptr->prev_free_flag = 0;
 		int i = 0;
@@ -200,32 +245,49 @@ void *hw_malloc(size_t bytes)
 		first_alloc = 0;
 	} else {
 		int which_bin = bin_choose(bytes);
-		if(which_bin==6) {
+		//printf("which_bin: %d\n", which_bin);
+		if (which_bin == 6)
+		{
 			/*Allocate from bin 6*/
-			new_alloc_chunk_ptr=chunk_split(bytes);
-			if(new_alloc_chunk_ptr==NULL)
+			//printf("a1\n");
+			new_alloc_chunk_ptr = chunk_split(bytes);
+			if(new_alloc_chunk_ptr == NULL)
 				return NULL;
+			//printf("a2\n");
+			if((void *)new_alloc_chunk_ptr + new_alloc_chunk_ptr->chunk_size < heap_start_addr +65536){
+				chunk_ptr_t next_chunk = (chunk_ptr_t)((void *)new_alloc_chunk_ptr + new_alloc_chunk_ptr->chunk_size);
+				//printf("a3\n");
+				next_chunk->prev_free_flag = 0;
+			}
 			chunk_del(new_alloc_chunk_ptr);
-			new_alloc_chunk_ptr->chunk_size = bytes;
+			//printf("a4\n");
 		} else if (bin_is_empty(&bin[which_bin])) {
-			/*No free chunk in the choosed bin, so allocate from bin 6*/
-			new_alloc_chunk_ptr=chunk_split(bytes);
-			if(new_alloc_chunk_ptr==NULL)
+			/*No free chunk in the choosen bin, so allocate from bin 6*/
+			//printf("b\n");
+			new_alloc_chunk_ptr = chunk_split(bytes);
+			if(new_alloc_chunk_ptr == NULL)
 				return NULL;
+			if((void *)new_alloc_chunk_ptr + new_alloc_chunk_ptr->chunk_size < heap_start_addr +65536){
+				chunk_ptr_t next_chunk = (chunk_ptr_t)((void *)new_alloc_chunk_ptr + new_alloc_chunk_ptr->chunk_size);
+				next_chunk->prev_free_flag = 0;
+			}
 			chunk_del(new_alloc_chunk_ptr);
-			new_alloc_chunk_ptr->chunk_size = bytes;
 		} else {
 			/*Allocate from the bin other than bin 6*/
-			new_alloc_chunk_ptr=chunk_del(bin[which_bin].next);
-			if(new_alloc_chunk_ptr==NULL)
+			//printf("c\n");
+			new_alloc_chunk_ptr = chunk_del(bin[which_bin].next);
+			if(new_alloc_chunk_ptr == NULL)
 				return NULL;
+			if((void *)new_alloc_chunk_ptr + new_alloc_chunk_ptr->chunk_size < heap_start_addr +65536){
+				chunk_ptr_t next_chunk = (chunk_ptr_t)((void *)new_alloc_chunk_ptr + new_alloc_chunk_ptr->chunk_size);
+				next_chunk->prev_free_flag = 0;
+			}
 			new_alloc_chunk_ptr->chunk_size = bytes;
 		}
-		if((void *)new_alloc_chunk_ptr + new_alloc_chunk_ptr->chunk_size + 40 ==
-		   heap_start_addr+ 65536)
+		if((void *)new_alloc_chunk_ptr + new_alloc_chunk_ptr->chunk_size == heap_start_addr + 65536)
 			last_is_free = 0;
 	}
-	bin_add_chunk(&bin[7],new_alloc_chunk_ptr);
+	bin_add_chunk(&bin[7], new_alloc_chunk_ptr);
 	return (void *)new_alloc_chunk_ptr + 40;
 }
 
@@ -233,15 +295,35 @@ int hw_free(void *mem)
 {
 	if(mem==NULL || mem < heap_start_addr || mem > heap_start_addr + 65536)
 		return 0;
-	chunk_ptr_t about_to_free = (chunk_ptr_t)(mem - 40);
+	int found=0;
+	chunk_ptr_t about_to_free = bin[7].next;
+	while(about_to_free != (chunk_ptr_t)&bin[7]){
+		if(about_to_free == (chunk_ptr_t)(mem - 40)) {
+			found=1;
+			break;
+		}
+		about_to_free = about_to_free->next;
+	}
+	if(!found)
+		return 0;
 	chunk_del(about_to_free);
 	about_to_free = chunk_merge(about_to_free);
-	int which_bin=bin_choose(about_to_free->chunk_size);
+	//printf("about_to_free: %010p\n", about_to_free);
+	//printf("about_to_free_size: %llu\n", about_to_free->chunk_size);
+	if((void *)about_to_free + about_to_free->chunk_size < heap_start_addr+65536){
+		chunk_ptr_t next_chunk = (chunk_ptr_t)((void *)about_to_free + about_to_free->chunk_size);
+		//printf("next: %010p\n", next_chunk);
+		//printf("prev_free_flag: %llu\n", next_chunk->prev_free_flag);
+		next_chunk->prev_free_flag = 1;
+		//printf("prev_free_flag: %llu\n", next_chunk->prev_free_flag);
+	}
+	int which_bin = bin_choose(about_to_free->chunk_size);
 	bin_add_chunk(&bin[which_bin], about_to_free);
-	if((void *)about_to_free + about_to_free->chunk_size + 40 == heap_start_addr +
+	if((void *)about_to_free + about_to_free->chunk_size == heap_start_addr +
 	   65536)
 		last_is_free = 1;
 	return 1;
+
 }
 
 void *get_start_sbrk(void)
@@ -263,12 +345,14 @@ void *get_start_sbrk(void)
 	*/
 	return heap_start_addr;
 }
-void hw_show_info(void)
+void hw_print_bin(int which_bin)
 {
-	int i = 0;
-	for (i = 0; i < 8; i++) {
-		printf("bin[%d]",i);
-		bin_show(&bin[i]);
-		printf("\n");
+	chunk_ptr_t current = bin[which_bin].next;
+	while (current != (chunk_ptr_t)&bin[which_bin]) {
+		if((void *)current == heap_start_addr)
+			printf("0x00000000--------%llu\n", current->chunk_size);
+		else
+			printf("%010p--------%llu\n",(void *)current - (unsigned long long)heap_start_addr, current->chunk_size);
+		current = current->next;
 	}
 }

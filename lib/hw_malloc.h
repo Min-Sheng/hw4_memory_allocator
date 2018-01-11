@@ -31,7 +31,7 @@ extern int first_alloc;
 void bin_init(bin_t *bin_);
 int bin_is_empty(bin_t *bin_);
 void bin_add_chunk(bin_t *bin_, chunk_ptr_t chunk_ptr);
-void bin_show(bin_t *bin_);
+extern void bin_show(bin_t *bin_);
 int bin_choose(size_t bytes);
 
 void *chunk_split(size_t bytes);
@@ -41,6 +41,6 @@ void *chunk_del(chunk_ptr_t chunk_ptr);
 extern void *hw_malloc(size_t bytes);
 extern int hw_free(void *mem);
 extern void *get_start_sbrk(void);
-extern void hw_show_info(void);
+extern void hw_print_bin(int which_bin);
 
 #endif
