@@ -160,11 +160,12 @@ void *chunk_merge(chunk_ptr_t chunk_ptr)
 				next_next_chunk->pre_chunk_size = chunk_ptr->chunk_size;
 				//printf("merge next\n");
 			}
-		}else if((void *)next_chunk + next_chunk->chunk_size == heap_start_addr + 65536){
+		} else if((void *)next_chunk + next_chunk->chunk_size == heap_start_addr +
+		          65536) {
 			if(last_is_free) {
-			chunk_ptr->chunk_size += next_chunk->chunk_size;
-			chunk_del(next_chunk);
-			//printf("merge last\n");
+				chunk_ptr->chunk_size += next_chunk->chunk_size;
+				chunk_del(next_chunk);
+				//printf("merge last\n");
 			}
 		}
 	}
