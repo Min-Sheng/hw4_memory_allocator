@@ -86,7 +86,7 @@ void *chunk_split(size_t bytes)
 			break;
 		} else if(chunk_min_fit->chunk_size >= bytes) {
 			if((void *)chunk_min_fit + bytes <= heap_start_addr + 65536 ) {
-				if(chunk_min_fit->chunk_size - bytes< 48) {
+				if(chunk_min_fit->chunk_size - bytes < 48) {
 					bytes = chunk_min_fit->chunk_size;
 					found = 1;
 					break;
@@ -108,11 +108,10 @@ void *chunk_split(size_t bytes)
 	if(split) {
 		//printf("s\n");
 		//printf("Chunk_min_fit: %p\n", (void *)chunk_min_fit);
-		chunk_ptr_t chunk_rest;
 		//printf("Rest Size: %llu\n", chunk_min_fit->chunk_size - bytes);
 		int rest = bin_choose(chunk_min_fit->chunk_size - bytes);
 		//printf("Rest: %d\n", rest);
-		chunk_rest = (void *)chunk_min_fit + bytes;
+		chunk_ptr_t chunk_rest = (void *)chunk_min_fit + bytes;
 		//printf("heap_end: %p\n", heap_start_addr + 65536);
 		//printf("Chunk_rest: %p\n", (void *)chunk_rest);
 		//printf("Chunk_min_fit_size: %llu\n", chunk_min_fit->chunk_size);
@@ -133,43 +132,39 @@ void *chunk_split(size_t bytes)
 void *chunk_merge(chunk_ptr_t chunk_ptr)
 {
 	chunk_ptr_t prev_chunk = NULL, next_chunk = NULL, next_next_chunk = NULL;
-	if ((void *)chunk_ptr < heap_start_addr + 65536) {
-		if((void *)chunk_ptr + chunk_ptr->chunk_size < heap_start_addr + 65536) {
-			next_chunk = (chunk_ptr_t)((void *)chunk_ptr + chunk_ptr->chunk_size);
+	if((void *)chunk_ptr + chunk_ptr->chunk_size < heap_start_addr + 65536) {
+		next_chunk = (chunk_ptr_t)((void *)chunk_ptr + chunk_ptr->chunk_size);
+		/*
+		printf("next_chunk: %p(next:%p; prev:%p; chunk_size=%llu; prev_chunk_size=%llu; prev_free_flag=%llu)\n",
+			(void *)next_chunk,
+			(void *)next_chunk->next,
+			(void *)next_chunk->prev,
+			(unsigned long long)next_chunk->chunk_size,
+			(unsigned long long)next_chunk->pre_chunk_size,
+			(unsigned long long)next_chunk->prev_free_flag);
+		*/
+		if((void *)next_chunk + next_chunk->chunk_size < heap_start_addr + 65536) {
+			next_next_chunk = (chunk_ptr_t)((void *)next_chunk + next_chunk->chunk_size);
 			/*
-			printf("next_chunk: %p(next:%p; prev:%p; chunk_size=%llu; prev_chunk_size=%llu; prev_free_flag=%llu)\n",
-				(void *)next_chunk,
-				(void *)next_chunk->next,
-				(void *)next_chunk->prev,
-				(unsigned long long)next_chunk->chunk_size,
-				(unsigned long long)next_chunk->pre_chunk_size,
-				(unsigned long long)next_chunk->prev_free_flag);
+			printf("next_next_chunk: %p(next:%p; prev:%p; chunk_size=%llu; prev_chunk_size=%llu; prev_free_flag=%llu)\n",
+				(void *)next_next_chunk,
+				(void *)next_next_chunk->next,
+				(void *)next_next_chunk->prev,
+				(unsigned long long)next_next_chunk->chunk_size,
+				(unsigned long long)next_next_chunk->pre_chunk_size,
+				(unsigned long long)next_next_chunk->prev_free_flag);
 			*/
-			if((void *)next_chunk + next_chunk->chunk_size < heap_start_addr + 65536) {
-				next_next_chunk = (chunk_ptr_t)((void *)next_chunk + next_chunk->chunk_size);
-				/*
-				printf("next_next_chunk: %p(next:%p; prev:%p; chunk_size=%llu; prev_chunk_size=%llu; prev_free_flag=%llu)\n",
-					(void *)next_next_chunk,
-					(void *)next_next_chunk->next,
-					(void *)next_next_chunk->prev,
-					(unsigned long long)next_next_chunk->chunk_size,
-					(unsigned long long)next_next_chunk->pre_chunk_size,
-					(unsigned long long)next_next_chunk->prev_free_flag);
-				*/
-				if(next_next_chunk->prev_free_flag == 1) {
-					chunk_ptr->chunk_size += next_chunk->chunk_size;
-					chunk_del(next_chunk);
-					next_next_chunk->pre_chunk_size = chunk_ptr->chunk_size;
-					//printf("merge next\n");
-				}
-			}
-		} else if((void *)chunk_ptr + chunk_ptr->chunk_size == heap_start_addr +
-		          65536) {
-			next_chunk = (chunk_ptr_t)((void *)chunk_ptr + chunk_ptr->chunk_size);
-			if(last_is_free) {
+			if(next_next_chunk->prev_free_flag == 1) {
 				chunk_ptr->chunk_size += next_chunk->chunk_size;
 				chunk_del(next_chunk);
-				//printf("merge last\n");
+				next_next_chunk->pre_chunk_size = chunk_ptr->chunk_size;
+				//printf("merge next\n");
+			}
+		}else if((void *)next_chunk + next_chunk->chunk_size == heap_start_addr + 65536){
+			if(last_is_free) {
+			chunk_ptr->chunk_size += next_chunk->chunk_size;
+			chunk_del(next_chunk);
+			//printf("merge last\n");
 			}
 		}
 	}
