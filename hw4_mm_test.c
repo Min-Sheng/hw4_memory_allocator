@@ -23,34 +23,30 @@ int main()
 	*/
 	/*Read the testfile*/
 	char cmd[32], param[32];
-	while (scanf("%s %s", cmd, param) != EOF)
-	{
+	while (scanf("%s %s", cmd, param) != EOF) {
 		unsigned long long to_alloc_size;
 		void *to_free_addr;
 		int to_print_bin;
-		if (!strcmp(cmd, "alloc"))
-		{
+		if (!strcmp(cmd, "alloc")) {
 			sscanf(param, "%llu", &to_alloc_size);
-			printf("%010p\n", (void *)hw_malloc(to_alloc_size)-(unsigned long long)get_start_sbrk());
+			printf("%010p\n", (void *)hw_malloc(to_alloc_size)-(unsigned long long)
+			       get_start_sbrk());
 			//printf("%010p\n", (void *)hw_malloc(to_alloc_size));
-		}
-		else if (!strcmp(cmd, "free")){
+		} else if (!strcmp(cmd, "free")) {
 			sscanf(param, "%p", &to_free_addr);
-			printf("%s\n", hw_free((void *)get_start_sbrk() + (unsigned long long)to_free_addr) == 1 ? "success" : "fail");
-		}else if(!strcmp(cmd,"print")){
+			printf("%s\n", hw_free((void *)get_start_sbrk() + (unsigned long long)
+			                       to_free_addr) == 1 ? "success" : "fail");
+		} else if(!strcmp(cmd,"print")) {
 			sscanf(&param[4], "%d", &to_print_bin);
 			hw_print_bin(to_print_bin);
-		}else if(!strcmp(cmd,"show")){
+		} else if(!strcmp(cmd,"show")) {
 			int i = 0;
-			for (i = 0; i < 8; i++)
-			{
+			for (i = 0; i < 8; i++) {
 				printf("bin[%d]",i);
 				bin_show(&bin[i]);
 				printf("\n");
 			}
-		}
-		else
-		{
+		} else {
 			printf("\'%s\' is wrong command.\n", cmd);
 
 		}
