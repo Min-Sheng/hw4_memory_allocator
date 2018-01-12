@@ -24,20 +24,20 @@ int main()
 	/*Read the testfile*/
 	char str[32];
 	char *cmd, *param;
-	while(fgets(str, sizeof(str), stdin) !=NULL){
+	while(fgets(str, sizeof(str), stdin) !=NULL) {
 		if (strcmp(str, "\n") == 0)
 			continue;
 		cmd = strtok(str, "\n");
 		cmd = strtok(str, " ");
 		param = strtok(NULL, " ");
-		if(param==NULL){
+		if(param==NULL) {
 			continue;
 		}
-		if (!strcmp(cmd, "alloc"))
-		{
+		if (!strcmp(cmd, "alloc")) {
 			unsigned long long to_alloc_size;
 			sscanf(param, "%llu", &to_alloc_size);
-			printf("%010p\n", (void *)hw_malloc(to_alloc_size)-(unsigned long long)get_start_sbrk());
+			printf("%010p\n", (void *)hw_malloc(to_alloc_size)-(unsigned long long)
+			       get_start_sbrk());
 		} else if (!strcmp(cmd, "free")) {
 			void *to_free_addr;
 			sscanf(param, "%p", &to_free_addr);
@@ -47,7 +47,7 @@ int main()
 			int to_print_bin;
 			char *bin, *num;
 			bin=strtok(param, "[");
-			if(!strcmp(bin, "bin")){
+			if(!strcmp(bin, "bin")) {
 				num = strtok(NULL, "]");
 				if(num==NULL)
 					continue;
