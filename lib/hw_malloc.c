@@ -43,7 +43,10 @@ void bin_show(bin_t *bin_)
 {
 	chunk_ptr_t current = bin_->next;
 	while (current != (chunk_ptr_t)bin_) {
-		printf("-> chunk: %010p", (void *)current);
+		if((void *)current == heap_start_addr)
+			printf("-> chunk: 0x00000000");
+		else
+			printf("-> chunk: %010p", (void *)current-(unsigned long long)heap_start_addr);
 		printf("(prev_free_flag=%llu)\n",
 		       (unsigned long long)current->prev_free_flag);
 		/*
@@ -85,20 +88,18 @@ void *chunk_split(size_t bytes)
 		if(bin_is_empty(&bin[6])) {
 			break;
 		} else if(chunk_min_fit->chunk_size >= bytes) {
-			if((void *)chunk_min_fit + bytes <= heap_start_addr + 65536 ) {
-				if(chunk_min_fit->chunk_size - bytes < 48) {
-					bytes = chunk_min_fit->chunk_size;
-					found = 1;
-					break;
-				} else {
-					found = 1;
-					split = 1;
-					break;
-				}
+			while(chunk_min_fit->chunk_size==chunk_min_fit->prev->chunk_size)
+				chunk_min_fit = chunk_min_fit->prev;
+			if(chunk_min_fit->chunk_size - bytes < 48) {
+				bytes = chunk_min_fit->chunk_size;
+				found = 1;
+				break;
 			} else {
+				found = 1;
+				split = 1;
 				break;
 			}
-		} else {
+		}else {
 			chunk_min_fit = chunk_min_fit->prev;
 		}
 	}
