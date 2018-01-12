@@ -148,11 +148,10 @@ void *chunk_merge(chunk_ptr_t chunk_ptr)
 	}
 	*/
 	int i = 0;
-	for (i = 0; i < 7; i++)
-	{
+	for (i = 0; i < 7; i++) {
 		chunk_ptr_t prev_chunk = bin[i].next;
-		while (prev_chunk != (chunk_ptr_t)&bin[i]){
-			if((void *)prev_chunk + prev_chunk->chunk_size == chunk_ptr){
+		while (prev_chunk != (chunk_ptr_t)&bin[i]) {
+			if((void *)prev_chunk + prev_chunk->chunk_size == chunk_ptr) {
 				prev_chunk->chunk_size += chunk_ptr->chunk_size;
 				chunk_ptr=prev_chunk;
 				chunk_del(prev_chunk);
