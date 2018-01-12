@@ -99,7 +99,7 @@ void *chunk_split(size_t bytes)
 				split = 1;
 				break;
 			}
-		}else {
+		} else {
 			chunk_min_fit = chunk_min_fit->prev;
 		}
 	}
